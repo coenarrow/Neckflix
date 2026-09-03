@@ -1,0 +1,8 @@
+.git
+.venv
+dataset
+cached_dir
+output
+docs
+tests
+*.zarr

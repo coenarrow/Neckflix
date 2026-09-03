@@ -1,0 +1,31 @@
+# Python-generated files
+__pycache__/
+*.pyc
+*.pyo
+build/
+dist/
+wheels/
+*.egg-info
+
+# System files
+.DS_Store
+
+# Virtual environments
+.venv/
+
+
+# Environment variables
+.env
+
+# VS Code
+.vscode
+
+# Data directories
+dataset/
+cached_dir/
+cache/
+output/
+
+# Build artifacts
+plugin/build/
+hdf5_plugin/
