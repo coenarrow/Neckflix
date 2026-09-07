@@ -189,7 +189,8 @@ stores; the `ev` perspective extends it.
   describe the modality's timeline, not the pixel array.
 - **Every trace group carries a `units` attr** (`mmHg`, `mV`; `px` and `arb`
   for the event coordinates and polarity).
-- **Root attrs carry `participant`**, which downstream loaders split on.
+- **Root attrs carry `participant`** as a string, taken verbatim from
+  `dataset_info.csv`; downstream loaders split on it exactly as written.
 - **The `ev` perspective bends one rule.** An event camera is asynchronous, so
   it is its own perspective (it is not pixel-aligned to the Kinects) with a
   single `ev` modality, `fps=null`, and the sensor size and clock offset as
@@ -207,7 +208,7 @@ from the CSV.
 
 ```python
 {
-  "participant": 1,                       # int  (required: downstream splits on it)
+  "participant": "1",                     # str, the CSV cell verbatim (required: downstream splits on it)
   "session": 1,                           # int
   "recording_id": 3,                      # int  (leading token of "3_45_D")
   "posture": "recumbent",                 # 0->supine, 45->recumbent, 90->sitting

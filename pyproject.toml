@@ -1,6 +1,6 @@
 [project]
 name = "neckflix"
-version = "1.0.0"
+version = "1.0.1"
 description = "Preprocessing companion tool for the Neckflix dataset: temporal alignment, optional resize, zarr output"
 readme = "README.md"
 requires-python = ">=3.12"

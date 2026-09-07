@@ -114,7 +114,10 @@ def build_root_attrs(row: dict[str, str], name: str) -> dict:
         jvp_height, jvp_status = float(jvp_raw), "measured"
 
     return {
-        "participant": _i(row["Participant_ID"]),
+        # A string, verbatim from the CSV ("1", "14", "58"): the cache contract
+        # requires participant to be text, and downstream splits match it
+        # exactly as written -- no padding, no prefix, no parsing to a number.
+        "participant": _s(row["Participant_ID"]),
         "session": _i(row["Session_Number"]),
         "recording_id": _i(rec_parts[0]),
         "posture": POSTURE_BY_ANGLE[angle],
