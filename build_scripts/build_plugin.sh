@@ -13,7 +13,8 @@ BUILD_DIR="${ROOT_DIR}/plugin/build"
 cmake -S "${ROOT_DIR}/plugin" -B "${BUILD_DIR}" \
   -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
   -DCMAKE_BUILD_TYPE=Release \
-  -DBUILD_TESTING=OFF
+  -DBUILD_TESTING=OFF \
+  -DCMAKE_INSTALL_RPATH='$ORIGIN'
 
 cmake --build "${BUILD_DIR}" -j "$(getconf _NPROCESSORS_ONLN)"
 cmake --install "${BUILD_DIR}"
