@@ -42,6 +42,7 @@ class Job:
     modalities: list[str]
     perspectives: list[str]
     overwrite: bool
+    add_events: bool = False
 
 
 @dataclass
@@ -173,6 +174,44 @@ def _write_events(
     return len(events.t)
 
 
+def _add_events(job: Job, result: RecordingResult) -> None:
+    """Write ``ev`` into an existing store whose video is already written.
+
+    Temporary: fills in stores whose video finished but whose events failed
+    on a missing ECF plugin, without re-decoding the video. Nothing marks the
+    video as finished, so the caller vouches for it; this only checks that
+    every requested video group is present at the requested resolution.
+    """
+    rec = job.recording
+    store_path = job.output_dir / f"{rec.name}.zarr"
+    if not store_path.exists():
+        raise FileNotFoundError(f"{store_path} does not exist; run without --add-events")
+    root = zarr.open_group(store_path, mode="r+")
+    stored = root.attrs.get("resized_to")
+    wanted = list(job.resize) if job.resize else None
+    if stored != wanted:
+        raise ValueError(f"store resized_to {stored} != requested {wanted}")
+    missing = [
+        f"{perspective}/{kind}"
+        for perspective in sorted(rec.perspectives)
+        if perspective in job.perspectives
+        for kind in VIDEO_MODALITIES
+        if kind in job.modalities and rec.perspectives[perspective].get(kind) is not None
+        and f"{perspective}/{kind}" not in root
+    ]
+    if missing:
+        raise ValueError(f"video groups missing: {missing}; run without --add-events")
+    if "ev" in root:
+        del root["ev"]
+    num_events = None
+    if rec.events_path is not None:
+        num_events = _write_events(root, rec, _align_streams(job, result), result)
+    result.detail = "events added"
+    if num_events is not None:
+        result.detail += f", {num_events:,} events"
+    mark_complete(root, job.modalities, job.perspectives)
+
+
 def process_recording(job: Job) -> RecordingResult:
     """Align, decode/resize, and write one recording's zarr store."""
     rec = job.recording
@@ -183,6 +222,9 @@ def process_recording(job: Job) -> RecordingResult:
             store_path, job.modalities, job.perspectives, job.resize
         ):
             result.status = "skipped"
+            return result
+        if job.add_events:
+            _add_events(job, result)
             return result
 
         root = init_store(
@@ -247,12 +289,20 @@ def build_parser() -> argparse.ArgumentParser:
              "allow ~12 GB of RAM per worker.",
     )
     parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument(
+        "--add-events", action="store_true",
+        help="Temporary: write only the event camera into existing stores "
+             "whose video is already written; never wipes a store",
+    )
     parser.add_argument("--version", action="version", version=neckflix.__version__)
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.add_events and args.overwrite:
+        print("--add-events and --overwrite are mutually exclusive.")
+        return 1
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     try:
@@ -292,7 +342,7 @@ def main(argv: list[str] | None = None) -> int:
             Job(recording=rec, output_dir=args.output_dir,
                 resize=tuple(args.resize) if args.resize else None,
                 modalities=args.modalities, perspectives=args.perspectives,
-                overwrite=args.overwrite)
+                overwrite=args.overwrite, add_events=args.add_events)
         )
 
     if not jobs and not scan_failures:
